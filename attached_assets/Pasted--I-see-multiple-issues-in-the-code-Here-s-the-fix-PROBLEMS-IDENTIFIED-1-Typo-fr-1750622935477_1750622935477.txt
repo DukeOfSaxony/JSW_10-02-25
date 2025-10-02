@@ -1,0 +1,153 @@
+🎯 **I see multiple issues in the code. Here's the fix:**
+
+**PROBLEMS IDENTIFIED:**
+1. **Typo:** `frameCouantRef` should be `frameCountRef` (causing reference errors)
+2. **Scrambling entire text:** Should only scramble the changing word, not "WE"
+3. **Too fast + erratic:** Wrong timing values and animation logic
+4. **3-second delay:** You want 1 second between changes
+
+**FIX PROMPT FOR AGENT:**
+
+```
+URGENT FIXES: Text scramble timing and behavior issues
+
+PROBLEMS TO FIX:
+1. Typo causing scramble errors
+2. Scrambling entire phrase instead of just changing word
+3. Animation too fast and erratic  
+4. 3-second delay should be 1 second
+
+SOLUTION: Replace the ScrambleText component with this corrected version:
+
+```tsx
+const ScrambleText: React.FC = () => {
+  const { displayText, scrambleText } = useTextScramble({ speed: 60 });
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const words = ["FIX ZIPPERS", "REPAIR WATCHES", "RESTORE LEATHER", "CLEAN SNEAKERS"];
+
+  useEffect(() => {
+    const cycle = async () => {
+      await scrambleText(words[currentIndex]);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second pause
+      setCurrentIndex((prev) => (prev + 1) % words.length);
+    };
+    
+    cycle();
+  }, [currentIndex, scrambleText]);
+
+  const renderTextWithColor = (text: string) => {
+    const parts = text.split(" ");
+    return (
+      <span>
+        <span className="text-[#00783e]">{parts[0]}</span>
+        {parts.slice(1).length > 0 && (
+          <span className="text-white">{" " + parts.slice(1).join(" ")}</span>
+        )}
+      </span>
+    );
+  };
+
+  return (
+    <h1 className="font-bold text-white leading-tight
+                   text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl
+                   max-w-full break-words
+                   min-h-[3rem] sm:min-h-[4rem] md:min-h-[5rem] lg:min-h-[6rem]"
+        style={{ 
+          fontFamily: 'Oswald, sans-serif',
+          fontWeight: 700, 
+          letterSpacing: '-0.03em',
+          textTransform: 'uppercase'
+        }}>
+      <span className="mr-4">WE</span>
+      {renderTextWithColor(displayText)}
+    </h1>
+  );
+};
+```
+
+ALSO FIX THE HOOK - Replace useTextScramble with:
+
+```tsx
+const useTextScramble = (options: ScrambleOptions = {}) => {
+  const [displayText, setDisplayText] = useState('FIX ZIPPERS');
+  const { chars = '!<>-_\\/[]{}—=+*^?#________' } = options;
+  const frameRef = useRef<number>();
+  const queueRef = useRef<any[]>([]);
+  const frameCountRef = useRef(0); // FIXED TYPO
+
+  const scrambleText = (newText: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const oldText = displayText;
+      const length = Math.max(oldText.length, newText.length);
+      queueRef.current = [];
+
+      for (let i = 0; i < length; i++) {
+        const from = oldText[i] || '';
+        const to = newText[i] || '';
+        const start = Math.floor(Math.random() * 30); // Slower start
+        const end = start + Math.floor(Math.random() * 30); // Slower duration
+        queueRef.current.push({ from, to, start, end });
+      }
+
+      frameCountRef.current = 0;
+      
+      const update = () => {
+        let output = '';
+        let complete = 0;
+        
+        for (let i = 0; i < queueRef.current.length; i++) {
+          let { from, to, start, end, char } = queueRef.current[i];
+          
+          if (frameCountRef.current >= end) {
+            complete++;
+            output += to;
+          } else if (frameCountRef.current >= start) {
+            if (!char || Math.random() < 0.28) {
+              char = chars[Math.floor(Math.random() * chars.length)];
+              queueRef.current[i].char = char;
+            }
+            output += char;
+          } else {
+            output += from;
+          }
+        }
+        
+        setDisplayText(output);
+        
+        if (complete === queueRef.current.length) {
+          resolve();
+        } else {
+          frameCountRef.current++;
+          frameRef.current = requestAnimationFrame(update); // FIXED: removed setTimeout
+        }
+      };
+      
+      update();
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+
+  return { displayText, scrambleText };
+};
+```
+
+CHANGES MADE:
+- Fixed typo: frameCouantRef → frameCountRef  
+- Slower, more controlled timing (30 vs 20)
+- Removed setTimeout wrapper causing erratic behavior
+- 1-second pause between changes (1000ms vs 3000ms)
+- Better initial state setup
+- Only scrambles the changing word, "WE" stays static
+
+RESULT: Smooth, controlled scramble effect with proper timing and sequencing.
+```
+
+**This fixes all the timing and behavior issues you described.**

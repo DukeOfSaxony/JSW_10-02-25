@@ -1,0 +1,114 @@
+🎯 **You're absolutely right! Looking at the original vs current code, the timing is completely wrong.**
+
+**PROBLEMS:**
+1. **Too fast:** Using `requestAnimationFrame` without throttling = 60fps
+2. **No breaks:** The scramble finishes instantly, so 1-second delay doesn't matter
+3. **Wrong timing values:** 30 vs original's 40, plus missing proper frame control
+
+**CORRECTED AGENT PROMPT:**
+
+```
+FIX: Scramble effect too fast and no proper breaks between phrases
+
+PROBLEM: Current code runs at 60fps with no throttling, making scramble instant
+
+SOLUTION: Replace the useTextScramble hook with properly timed version:
+
+```tsx
+const useTextScramble = (options: ScrambleOptions = {}) => {
+  const [displayText, setDisplayText] = useState('FIX ZIPPERS');
+  const { chars = '!<>-_\\/[]{}—=+*^?#________' } = options;
+  const frameRef = useRef<number>();
+  const queueRef = useRef<any[]>([]);
+  const frameCountRef = useRef(0);
+
+  const scrambleText = (newText: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const oldText = displayText;
+      const length = Math.max(oldText.length, newText.length);
+      queueRef.current = [];
+
+      for (let i = 0; i < length; i++) {
+        const from = oldText[i] || '';
+        const to = newText[i] || '';
+        const start = Math.floor(Math.random() * 40); // Back to original timing
+        const end = start + Math.floor(Math.random() * 40);
+        queueRef.current.push({ from, to, start, end });
+      }
+
+      frameCountRef.current = 0;
+      
+      const update = () => {
+        let output = '';
+        let complete = 0;
+        
+        for (let i = 0; i < queueRef.current.length; i++) {
+          let { from, to, start, end, char } = queueRef.current[i];
+          
+          if (frameCountRef.current >= end) {
+            complete++;
+            output += to;
+          } else if (frameCountRef.current >= start) {
+            if (!char || Math.random() < 0.28) {
+              char = chars[Math.floor(Math.random() * chars.length)];
+              queueRef.current[i].char = char;
+            }
+            output += char;
+          } else {
+            output += from;
+          }
+        }
+        
+        setDisplayText(output);
+        
+        if (complete === queueRef.current.length) {
+          resolve();
+        } else {
+          frameCountRef.current++;
+          // THROTTLE: 50ms delay instead of requestAnimationFrame
+          frameRef.current = setTimeout(() => {
+            requestAnimationFrame(update);
+          }, 50) as unknown as number;
+        }
+      };
+      
+      update();
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (frameRef.current) {
+        clearTimeout(frameRef.current);
+      }
+    };
+  }, []);
+
+  return { displayText, scrambleText };
+};
+```
+
+ALSO UPDATE ScrambleText component - change delay:
+
+```tsx
+useEffect(() => {
+  const cycle = async () => {
+    await scrambleText(phrases[currentIndex]);
+    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second pause
+    setCurrentIndex((prev) => (prev + 1) % phrases.length);
+  };
+  
+  cycle();
+}, [currentIndex, scrambleText, phrases]);
+```
+
+KEY CHANGES:
+- Added 50ms throttling with setTimeout + requestAnimationFrame combo
+- Back to original timing values (40 instead of 30)
+- 2-second pause between phrases for proper breaks
+- Proper cleanup with clearTimeout
+
+RESULT: Smooth, controlled scramble like original with proper pauses between phrases.
+```
+
+**This restores the original's smooth timing with proper breaks.**

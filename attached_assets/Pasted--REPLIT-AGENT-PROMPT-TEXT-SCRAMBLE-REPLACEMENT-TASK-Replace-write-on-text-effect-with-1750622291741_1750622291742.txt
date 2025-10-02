@@ -1,0 +1,150 @@
+🎯 **REPLIT AGENT PROMPT - TEXT SCRAMBLE REPLACEMENT:**
+
+```
+TASK: Replace write-on text effect with scramble effect + fix mobile text sizing
+
+OBJECTIVE: Convert current animated headline text to use scramble effect instead of write-on, and make it responsive for mobile.
+
+STEP 1: LOCATE CURRENT TEXT ANIMATION
+Find the component with the current write-on/typing text effect (likely in Hero.tsx or similar header component).
+
+STEP 2: CREATE SCRAMBLE HOOK
+Create this custom hook in the same file:
+
+```typescript
+import { useState, useEffect, useRef } from 'react';
+
+interface ScrambleOptions {
+  chars?: string;
+  speed?: number;
+}
+
+const useTextScramble = (options: ScrambleOptions = {}) => {
+  const [displayText, setDisplayText] = useState('');
+  const { chars = '!<>-_\\/[]{}—=+*^?#________', speed = 50 } = options;
+  const frameRef = useRef<number>();
+  const queueRef = useRef<any[]>([]);
+  const frameCountRef = useRef(0);
+
+  const scrambleText = (newText: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const oldText = displayText;
+      const length = Math.max(oldText.length, newText.length);
+      queueRef.current = [];
+
+      for (let i = 0; i < length; i++) {
+        const from = oldText[i] || '';
+        const to = newText[i] || '';
+        const start = Math.floor(Math.random() * 40);
+        const end = start + Math.floor(Math.random() * 40);
+        queueRef.current.push({ from, to, start, end });
+      }
+
+      frameCountRef.current = 0;
+      
+      const update = () => {
+        let output = '';
+        let complete = 0;
+        
+        for (let i = 0; i < queueRef.current.length; i++) {
+          let { from, to, start, end, char } = queueRef.current[i];
+          
+          if (frameCountRef.current >= end) {
+            complete++;
+            output += to;
+          } else if (frameCountRef.current >= start) {
+            if (!char || Math.random() < 0.28) {
+              char = chars[Math.floor(Math.random() * chars.length)];
+              queueRef.current[i].char = char;
+            }
+            output += char;
+          } else {
+            output += from;
+          }
+        }
+        
+        setDisplayText(output);
+        
+        if (complete === queueRef.current.length) {
+          resolve();
+        } else {
+          frameCountRef.current++;
+          frameRef.current = requestAnimationFrame(update);
+        }
+      };
+      
+      update();
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+
+  return { displayText, scrambleText };
+};
+```
+
+STEP 3: REPLACE CURRENT TEXT ANIMATION
+Replace the current text animation component with:
+
+```tsx
+const ScrambleText: React.FC = () => {
+  const { displayText, scrambleText } = useTextScramble();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const phrases = [
+    "WE FIX ZIPPERS",
+    "WE REPAIR WATCHES", 
+    "WE RESTORE LEATHER",
+    "WE CLEAN SNEAKERS"
+  ];
+
+  useEffect(() => {
+    const cycle = async () => {
+      await scrambleText(phrases[currentIndex]);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setCurrentIndex((prev) => (prev + 1) % phrases.length);
+    };
+    
+    cycle();
+  }, [currentIndex, scrambleText, phrases]);
+
+  return (
+    <h1 className="font-bold text-white leading-tight
+                   text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl
+                   max-w-full break-words
+                   min-h-[3rem] sm:min-h-[4rem] md:min-h-[5rem] lg:min-h-[6rem]">
+      {displayText}
+    </h1>
+  );
+};
+```
+
+STEP 4: RESPONSIVE TEXT SIZING
+The className above provides:
+- Mobile: text-2xl (24px) - 30% smaller than typical large headers
+- Small screens: text-3xl (30px)  
+- Medium: text-4xl (36px)
+- Large: text-5xl (48px)
+- Extra large: text-6xl (60px) - maximum size
+- Responsive line height and min-height to prevent layout shift
+
+STEP 5: INTEGRATION
+Replace your current animated text component with <ScrambleText /> in the hero section.
+
+RESULT: 
+- Scramble effect instead of write-on
+- 30% smaller text that scales responsively
+- Maximum size capped for desktop
+- Smooth character transitions
+- Mobile-friendly sizing
+
+ACTION: Implement the scramble text component and replace current text animation.
+```
+
+**This gives the agent everything needed to implement the scramble effect with proper responsive sizing!**

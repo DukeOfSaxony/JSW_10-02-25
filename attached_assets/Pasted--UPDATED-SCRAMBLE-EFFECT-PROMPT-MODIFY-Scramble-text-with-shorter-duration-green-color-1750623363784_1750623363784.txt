@@ -1,0 +1,139 @@
+🎯 **UPDATED SCRAMBLE EFFECT PROMPT:**
+
+```
+MODIFY: Scramble text with shorter duration, green color, and letter-only scrambling
+
+CHANGES NEEDED:
+1. Make all text same green color
+2. Scramble duration 20% shorter 
+3. Use only random letters for scrambling
+4. 1 second break between phrases
+
+SOLUTION: Replace the useTextScramble hook with:
+
+```tsx
+const useTextScramble = (options: ScrambleOptions = {}) => {
+  const [displayText, setDisplayText] = useState('FIX ZIPPERS');
+  const { chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' } = options; // ONLY LETTERS
+  const frameRef = useRef<number>();
+  const queueRef = useRef<any[]>([]);
+  const frameCountRef = useRef(0);
+
+  const scrambleText = (newText: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const oldText = displayText;
+      const length = Math.max(oldText.length, newText.length);
+      queueRef.current = [];
+
+      for (let i = 0; i < length; i++) {
+        const from = oldText[i] || '';
+        const to = newText[i] || '';
+        const start = Math.floor(Math.random() * 8); // 20% of 40 = 8
+        const end = start + Math.floor(Math.random() * 8); // 20% of 40 = 8
+        queueRef.current.push({ from, to, start, end });
+      }
+
+      frameCountRef.current = 0;
+      
+      const update = () => {
+        let output = '';
+        let complete = 0;
+        
+        for (let i = 0; i < queueRef.current.length; i++) {
+          let { from, to, start, end, char } = queueRef.current[i];
+          
+          if (frameCountRef.current >= end) {
+            complete++;
+            output += to;
+          } else if (frameCountRef.current >= start) {
+            if (!char || Math.random() < 0.28) {
+              char = chars[Math.floor(Math.random() * chars.length)];
+              queueRef.current[i].char = char;
+            }
+            output += char;
+          } else {
+            output += from;
+          }
+        }
+        
+        setDisplayText(output);
+        
+        if (complete === queueRef.current.length) {
+          resolve();
+        } else {
+          frameCountRef.current++;
+          frameRef.current = setTimeout(() => {
+            requestAnimationFrame(update);
+          }, 50) as unknown as number;
+        }
+      };
+      
+      update();
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (frameRef.current) {
+        clearTimeout(frameRef.current);
+      }
+    };
+  }, []);
+
+  return { displayText, scrambleText };
+};
+```
+
+ALSO UPDATE ScrambleText component:
+
+```tsx
+const ScrambleText: React.FC = () => {
+  const { displayText, scrambleText } = useTextScramble();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const phrases = [
+    "FIX ZIPPERS",
+    "REPAIR WATCHES", 
+    "RESTORE LEATHER",
+    "CLEAN SNEAKERS"
+  ];
+
+  useEffect(() => {
+    const cycle = async () => {
+      await scrambleText(phrases[currentIndex]);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 SECOND BREAK
+      setCurrentIndex((prev) => (prev + 1) % phrases.length);
+    };
+    
+    cycle();
+  }, [currentIndex, scrambleText, phrases]);
+
+  return (
+    <h1 className="font-bold text-white leading-tight
+                   text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl
+                   max-w-full break-words
+                   min-h-[3rem] sm:min-h-[4rem] md:min-h-[5rem] lg:min-h-[6rem]"
+        style={{ 
+          fontFamily: 'Oswald, sans-serif',
+          fontWeight: 700, 
+          letterSpacing: '-0.03em',
+          textTransform: 'uppercase'
+        }}>
+      <span className="mr-4">WE</span>
+      <span className="text-[#00783e]">{displayText}</span> {/* ALL GREEN */}
+    </h1>
+  );
+};
+```
+
+CHANGES MADE:
+- Scramble chars: Only A-Z letters (no special characters)
+- Timing: Reduced from 0-40 to 0-8 (20% duration)
+- Break: 1 second instead of 2 seconds
+- Color: All text now same green color
+- Removed renderTextWithColor function - simplified to single green span
+
+RESULT: Faster, cleaner scramble effect with letter-only scrambling and consistent green styling.
+```
+
+**This gives you the clean, fast, letter-only scramble with uniform green styling you want.**
