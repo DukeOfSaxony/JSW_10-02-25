@@ -1,8 +1,12 @@
 [build]
+  base = "client"
   command = "npm run build"
   publish = "dist"
-  functions = "api"
 
+# optional: only if you need Netlify Functions, adjust path accordingly
+# functions = "../api"
+
+# SPA routing so /anything loads index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
