@@ -1,13 +1,11 @@
 [build]
-  # run from the REPO ROOT so npm installs and vite are found
   command = "npm run build"
-  publish = "client/dist"
+  publish = "dist"         # <- was client/dist
   functions = "api"
 
 [build.environment]
   NODE_VERSION = "20"
 
-# SPA routing so /anything renders index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
